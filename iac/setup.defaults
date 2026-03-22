@@ -1,0 +1,20 @@
+# Default configuration values for proxy infrastructure setup
+# Edit these values to change defaults for the setup script
+
+# AWS region
+DEFAULT_AWS_REGION="us-east-1"
+
+# Proxy authentication token (generated randomly if empty)
+DEFAULT_PROXY_AUTH_TOKEN=""
+
+# Processor port
+DEFAULT_PROCESSOR_PORT="8080"
+
+# VPC CIDR block
+DEFAULT_VPC_CIDR="10.0.0.0/16"
+
+# EC2 instance type
+DEFAULT_INSTANCE_TYPE="t3.micro"
+
+# AMI ID
+DEFAULT_AMI_ID="ami-0c94855ba95c71c99"
