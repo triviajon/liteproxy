@@ -4,14 +4,9 @@ on:
   push:
     branches:
     - main
-    paths:
-    - 'iac/**'
-    - '.github/workflows/terraform-validate.yml'
   pull_request:
     branches:
     - main
-    paths:
-    - 'iac/**'
 
 jobs:
   terraform:

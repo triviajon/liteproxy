@@ -4,19 +4,9 @@ on:
   push:
     branches:
     - main
-    paths:
-    - "versions.env"
-    - "processor/go.mod"
-    - "README.md"
-    - ".github/workflows/version-sync.yml"
-    - "tools/version-sync.sh"
   pull_request:
     branches:
     - main
-    paths:
-    - "versions.env"
-    - "processor/go.mod"
-    - "README.md"
 
 jobs:
   version-sync:
