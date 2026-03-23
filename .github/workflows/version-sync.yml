@@ -1,0 +1,30 @@
+name: Version Sync Check
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - "versions.env"
+      - "processor/go.mod"
+      - "README.md"
+      - ".github/workflows/version-sync.yml"
+  pull_request:
+    branches:
+      - main
+    paths:
+      - "versions.env"
+      - "processor/go.mod"
+      - "README.md"
+
+jobs:
+  version-sync:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Validate version alignment
+        run: |
+          chmod +x tools/version-sync.sh
+          ./tools/version-sync.sh
