@@ -20,25 +20,31 @@ func main() {
 	redisPort := os.Getenv("REDIS_PORT")
 	listenPort := os.Getenv("PROCESSOR_PORT")
 
-	// Validation: BLAKE3 requires exactly 32 bytes for keyed hashing
-	if len(cacheSalt) != 32 {
-		log.Fatalf("FATAL: CACHE_SALT must be exactly 32 bytes. Got %d", len(cacheSalt))
-	}
+	// Precondition validation
 	if proxySecret == "" {
 		log.Fatal("FATAL: PROXY_AUTH_TOKEN is required for middleware")
 	}
 
 	// Initialize the Hashing Identity
-	keyGen := cache.NewRedisKeyGeneratorFromStringKey(cacheSalt)
+	keyGen, err := cache.NewRedisKeyGeneratorFromStringKey(cacheSalt)
+	if err != nil {
+		log.Fatalf("FATAL: Failed to create key generator: %v", err)
+	}
 
 	// Initialize the Storage Adapter
 	redisAddr := fmt.Sprintf("%s:%s", redisHost, redisPort)
-	redisStore := cache.NewRedisCache(redisAddr, keyGen)
+	redisStore, err := cache.NewRedisCache(redisAddr, keyGen)
+	if err != nil {
+		log.Fatalf("FATAL: Failed to create Redis cache: %v", err)
+	}
 
 	// Build the Logic Pipeline
-	pipeline := rewritepipeline.NewPipeline(
+	pipeline, err := rewritepipeline.NewPipeline(
 		&rewritepipeline.ImageStripper{},
 	)
+	if err != nil {
+		log.Fatalf("FATAL: Failed to create pipeline: %v", err)
+	}
 
 	// Initialize the Core Proxy Server
 	proxySrv := &proxy.ProxyServer{
@@ -47,7 +53,10 @@ func main() {
 	}
 
 	// Chain the Middlewares
-	handler := auth.WithHeaderAuth(proxySrv, proxySecret)
+	handler, err := auth.WithHeaderAuth(proxySrv, proxySecret)
+	if err != nil {
+		log.Fatalf("FATAL: Failed to create auth middleware: %v", err)
+	}
 
 	// Lifecycle Management
 	server := &http.Server{

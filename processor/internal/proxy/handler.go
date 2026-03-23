@@ -28,6 +28,12 @@ func (p *ProxyServer) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	modifyResponseFn, err := util.Bind1(p.modifyResponse, *r.URL)
+	if err != nil {
+		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
+		return
+	}
+
 	proxy := &httputil.ReverseProxy{
 		Rewrite: func(pr *httputil.ProxyRequest) {
 			pr.SetURL(pr.In.URL)
@@ -37,7 +43,7 @@ func (p *ProxyServer) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 			pr.Out.Header.Set("X-Proxy-Processor", "liteproxy")
 			pr.Out.Header.Del("Accept-Encoding")
 		},
-		ModifyResponse: util.Bind1(p.modifyResponse, *r.URL),
+		ModifyResponse: modifyResponseFn,
 	}
 
 	proxy.ServeHTTP(w, r)
