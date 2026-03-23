@@ -4,7 +4,10 @@ set -e
 # Load default configuration values
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 if [ -f "$SCRIPT_DIR/setup.defaults" ]; then
-  source "$SCRIPT_DIR/setup.defaults"
+    source "$SCRIPT_DIR/setup.defaults"
+else
+    echo "Error: setup.defaults not found in $SCRIPT_DIR"
+    exit 1
 fi
 
 TFVARS_FILE="terraform.tfvars"
@@ -12,37 +15,45 @@ TFVARS_FILE="terraform.tfvars"
 echo "=== LiteProxy Infrastructure Setup ==="
 
 # 1. AWS Region
-read -p "Enter AWS Region [${DEFAULT_AWS_REGION:-us-east-1}]: " AWS_REGION
-AWS_REGION=${AWS_REGION:-${DEFAULT_AWS_REGION:-us-east-1}}
+read -p "Enter AWS Region [$DEFAULT_AWS_REGION]: " AWS_REGION
+AWS_REGION=${AWS_REGION:-$DEFAULT_AWS_REGION}
 
 # 2. Proxy Auth Token (X-Proxy-Auth Header)
 if [ -n "$PROXY_AUTH_TOKEN" ]; then
-  read -p "PROXY_AUTH_TOKEN detected in environment. Use it? (y/n) [y]: " USE_ENV_TOKEN
-  if [[ "${USE_ENV_TOKEN:-y}" != "y" ]]; then
-    PROXY_AUTH_TOKEN=$(openssl rand -hex 16)
-  fi
+    read -p "PROXY_AUTH_TOKEN detected in environment. Use it? (y/n) [y]: " USE_ENV_TOKEN
+    if [[ "${USE_ENV_TOKEN:-y}" != "y" ]]; then
+        PROXY_AUTH_TOKEN=$(openssl rand -hex 16)
+    fi
+elif [ -n "$DEFAULT_PROXY_AUTH_TOKEN" ]; then
+    PROXY_AUTH_TOKEN=$DEFAULT_PROXY_AUTH_TOKEN
 else
-  PROXY_AUTH_TOKEN=$(openssl rand -hex 16)
+    PROXY_AUTH_TOKEN=$(openssl rand -hex 16)
 fi
 
-# 3. Cache Salt (BLAKE3 Keyed Hash)
+# 3. Cache Salt (BLAKE3 Keyed Hash - Always generated fresh for security)
 CACHE_SALT=$(openssl rand -hex 16)
-echo "Generated unique CACHE_SALT for BLAKE3."
+echo "Generated unique 32-char CACHE_SALT for BLAKE3."
 
 # 4. Processor Port
-read -p "Enter Processor Port [${DEFAULT_PROCESSOR_PORT:-8080}]: " PROCESSOR_PORT
-PROCESSOR_PORT=${PROCESSOR_PORT:-${DEFAULT_PROCESSOR_PORT:-8080}}
+read -p "Enter Processor Port [$DEFAULT_PROCESSOR_PORT]: " PROCESSOR_PORT
+PROCESSOR_PORT=${PROCESSOR_PORT:-$DEFAULT_PROCESSOR_PORT}
 
 # 5. VPC CIDR
-read -p "Enter VPC CIDR block [${DEFAULT_VPC_CIDR:-10.0.0.0/16}]: " VPC_CIDR
-VPC_CIDR=${VPC_CIDR:-${DEFAULT_VPC_CIDR:-10.0.0.0/16}}
+read -p "Enter VPC CIDR block [$DEFAULT_VPC_CIDR]: " VPC_CIDR
+VPC_CIDR=${VPC_CIDR:-$DEFAULT_VPC_CIDR}
 
 # 6. EC2 Configuration
-read -p "Enter EC2 instance type [${DEFAULT_INSTANCE_TYPE:-t3.micro}]: " INSTANCE_TYPE
-INSTANCE_TYPE=${INSTANCE_TYPE:-${DEFAULT_INSTANCE_TYPE:-t3.micro}}
+read -p "Enter EC2 instance type [$DEFAULT_INSTANCE_TYPE]: " INSTANCE_TYPE
+INSTANCE_TYPE=${INSTANCE_TYPE:-$DEFAULT_INSTANCE_TYPE}
 
-read -p "Enter AMI ID [${DEFAULT_AMI_ID:-ami-latest}]: " AMI_ID
-AMI_ID=${AMI_ID:-${DEFAULT_AMI_ID:-ami-latest}}
+read -p "Enter AMI ID [$DEFAULT_AMI_ID]: " AMI_ID
+AMI_ID=${AMI_ID:-$DEFAULT_AMI_ID}
+
+# 7. GHCR Image Path (New requirement for the workflow)
+# Constructing a sensible default: ghcr.io/<github_user>/liteproxy-processor:latest
+DEFAULT_IMAGE_PATH="ghcr.io/$(git config user.name | tr '[:upper:]' '[:lower:]')/liteproxy-processor:latest"
+read -p "Enter GHCR Container Image [$DEFAULT_IMAGE_PATH]: " CONTAINER_IMAGE
+CONTAINER_IMAGE=${CONTAINER_IMAGE:-$DEFAULT_IMAGE_PATH}
 
 # Write the configuration to terraform.tfvars
 cat <<EOF > "$TFVARS_FILE"
@@ -54,11 +65,12 @@ processor_port   = $PROCESSOR_PORT
 vpc_cidr         = "$VPC_CIDR"
 instance_type    = "$INSTANCE_TYPE"
 ami_id           = "$AMI_ID"
+container_image  = "$CONTAINER_IMAGE"
 EOF
 
 echo ""
 echo "-------------------------------------------------------"
 echo "Successfully generated $TFVARS_FILE"
-echo "Proxy Auth Token: $PROXY_AUTH_TOKEN"
+echo "Proxy Auth Token (Save this!): $PROXY_AUTH_TOKEN"
 echo "-------------------------------------------------------"
 echo "Next: terraform init && terraform apply"
