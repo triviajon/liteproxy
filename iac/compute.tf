@@ -39,7 +39,9 @@ resource "aws_launch_template" "proxy_lt" {
   user_data = base64encode(templatefile("${path.module}/user_data.sh", {
     PROCESSOR_PORT   = var.processor_port
     PROXY_AUTH_TOKEN = var.proxy_auth_token
+    CACHE_SALT       = var.cache_salt
     REDIS_HOST       = aws_elasticache_cluster.proxy_cache.cache_nodes[0].address
+    REDIS_PORT       = "6379"
     CONTAINER_IMAGE  = var.container_image
   }))
 

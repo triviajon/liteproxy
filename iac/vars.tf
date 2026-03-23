@@ -41,3 +41,9 @@ variable "container_image" {
   type        = string
   default     = "ghcr.io/triviajon/proxy-processor:latest"
 }
+
+variable "cache_salt" {
+  description = "Salt for BLAKE3 keyed hashing (must be 32 bytes)"
+  type        = string
+  sensitive   = true
+}
