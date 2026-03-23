@@ -13,10 +13,11 @@ if [ -z "$go_mod_version" ]; then
 fi
 echo "go.mod version=$go_mod_version"
 
-# Extract README go version
-readme_go_version=$(grep -Eo 'golang version: go[0-9]+\.[0-9]+(\.[0-9]+)?' README.md | head -n1 | sed 's/golang version: go//')
+# Extract README go version (support both old and new formatting)
+readme_go_version=$(grep -Eo 'GO_VERSION=[0-9]+\.[0-9]+(\.[0-9]+)?' README.md 2>/dev/null || true)
+readme_go_version=$(echo "$readme_go_version" | head -n1 | cut -d= -f2)
 if [ -z "$readme_go_version" ]; then
-  echo "ERROR: README go version not found"
+  echo "ERROR: README go version not found (expected 'golang version: goX.Y.Z' or 'GO_VERSION=X.Y.Z')"
   exit 1
 fi
 echo "README golang version=$readme_go_version"

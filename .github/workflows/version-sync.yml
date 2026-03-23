@@ -9,6 +9,7 @@ on:
     - "processor/go.mod"
     - "README.md"
     - ".github/workflows/version-sync.yml"
+    - "tools/version-sync.sh"
   pull_request:
     branches:
     - main
