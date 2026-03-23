@@ -29,9 +29,13 @@ func (p *ProxyServer) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	}
 
 	proxy := &httputil.ReverseProxy{
-		Director: func(req *http.Request) {
-			req.Header.Set("X-Forwarded-Host", req.Header.Get("Host"))
-			req.Host = req.URL.Host
+		Rewrite: func(pr *httputil.ProxyRequest) {
+			pr.SetURL(pr.In.URL)
+			pr.Out.Host = pr.In.URL.Host
+
+			pr.Out.Header.Set("X-Forwarded-Host", pr.In.Header.Get("Host"))
+			pr.Out.Header.Set("X-Proxy-Processor", "liteproxy")
+			pr.Out.Header.Del("Accept-Encoding")
 		},
 		ModifyResponse: util.Bind1(p.modifyResponse, *r.URL),
 	}
@@ -46,6 +50,7 @@ func (p *ProxyServer) serveFromCache(w http.ResponseWriter, r *http.Request) err
 		return err
 	}
 
+	w.Header().Set("X-Proxy-Cache", "HIT")
 	w.Write(cachedData)
 	return nil
 }
