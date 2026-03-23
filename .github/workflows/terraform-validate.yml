@@ -3,40 +3,40 @@ name: Terraform Validate
 on:
   push:
     branches:
-      - main
+    - main
     paths:
-      - 'iac/**'
-      - '.github/workflows/terraform-validate.yml'
+    - 'iac/**'
+    - '.github/workflows/terraform-validate.yml'
   pull_request:
     branches:
-      - main
+    - main
     paths:
-      - 'iac/**'
+    - 'iac/**'
 
 jobs:
   terraform:
     runs-on: ubuntu-latest
-    
+
     steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
+    - name: Checkout code
+      uses: actions/checkout@v4
 
-      - name: Setup Terraform
-        uses: hashicorp/setup-terraform@v3
-        with:
-          terraform_version: latest
+    - name: Setup Terraform
+      uses: hashicorp/setup-terraform@v3
+      with:
+        terraform_version: latest
 
-      - name: Terraform Format Check
-        run: |
-          cd iac
-          terraform fmt -check -recursive
+    - name: Terraform Format Check
+      run: |
+        cd iac
+        terraform fmt -check -recursive
 
-      - name: Terraform Init
-        run: |
-          cd iac
-          terraform init -backend=false
+    - name: Terraform Init
+      run: |
+        cd iac
+        terraform init -backend=false
 
-      - name: Terraform Validate
-        run: |
-          cd iac
-          terraform validate
+    - name: Terraform Validate
+      run: |
+        cd iac
+        terraform validate
