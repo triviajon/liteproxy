@@ -119,11 +119,19 @@ resource "aws_lb_listener" "http_listener" {
   }
 }
 
+resource "aws_secretsmanager_secret" "proxy_auth_token" {
+  name = "liteproxy/proxy-auth-token"
+}
+
+resource "aws_secretsmanager_secret_version" "proxy_auth_token_version" {
+  secret_id     = aws_secretsmanager_secret.proxy_auth_token.id
+  secret_string = var.proxy_auth_token
+}
+
 resource "aws_lb_listener_rule" "auth_rule" {
   listener_arn = aws_lb_listener.http_listener.arn
   priority     = 100
 
-  # Action: Forward to the proxy nodes
   action {
     type             = "forward"
     target_group_arn = aws_lb_target_group.proxy_tg.arn
@@ -132,7 +140,7 @@ resource "aws_lb_listener_rule" "auth_rule" {
   condition {
     http_header {
       http_header_name = "X-Proxy-Auth"
-      values           = [var.proxy_auth_token]
+      values           = [aws_secretsmanager_secret_version.proxy_auth_token_version.secret_string]
     }
   }
 }

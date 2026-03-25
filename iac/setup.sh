@@ -49,9 +49,8 @@ INSTANCE_TYPE=${INSTANCE_TYPE:-$DEFAULT_INSTANCE_TYPE}
 read -p "Enter AMI ID [$DEFAULT_AMI_ID]: " AMI_ID
 AMI_ID=${AMI_ID:-$DEFAULT_AMI_ID}
 
-# 7. GHCR Image Path (New requirement for the workflow)
-# Constructing a sensible default: ghcr.io/<github_user>/liteproxy-processor:latest
-DEFAULT_IMAGE_PATH="ghcr.io/$(git config user.name | tr '[:upper:]' '[:lower:]')/liteproxy-processor:latest"
+# 7. GHCR Image Path
+DEFAULT_IMAGE_PATH="ghcr.io/triviajon/liteproxy-processor:latest"
 read -p "Enter GHCR Container Image [$DEFAULT_IMAGE_PATH]: " CONTAINER_IMAGE
 CONTAINER_IMAGE=${CONTAINER_IMAGE:-$DEFAULT_IMAGE_PATH}
 
