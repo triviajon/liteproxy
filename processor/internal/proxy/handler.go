@@ -18,17 +18,28 @@ type ProxyServer struct {
 }
 
 func (p *ProxyServer) ServeHTTP(w http.ResponseWriter, r *http.Request) {
-	// Only handle GET
 	if r.Method != http.MethodGet {
 		http.Error(w, "Only GET supported", http.StatusMethodNotAllowed)
 		return
 	}
 
-	if err := p.serveFromCache(w, r); err == nil {
+	rawTarget := r.URL.Query().Get("url")
+	if rawTarget == "" {
+		http.Error(w, "Missing required query parameter: url", http.StatusBadRequest)
 		return
 	}
 
-	modifyResponseFn, err := util.Bind1(p.modifyResponse, *r.URL)
+	targetURL, err := url.Parse(rawTarget)
+	if err != nil || targetURL.Scheme == "" || targetURL.Host == "" {
+		http.Error(w, "Invalid url parameter", http.StatusBadRequest)
+		return
+	}
+
+	if err := p.serveFromCache(w, r, *targetURL); err == nil {
+		return
+	}
+
+	modifyResponseFn, err := util.Bind1(p.modifyResponse, *targetURL)
 	if err != nil {
 		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
 		return
@@ -36,10 +47,9 @@ func (p *ProxyServer) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 
 	proxy := &httputil.ReverseProxy{
 		Rewrite: func(pr *httputil.ProxyRequest) {
-			pr.SetURL(pr.In.URL)
-			pr.Out.Host = pr.In.URL.Host
-
-			pr.Out.Header.Set("X-Forwarded-Host", pr.In.Header.Get("Host"))
+			pr.SetURL(targetURL)
+			pr.Out.Host = targetURL.Host
+			pr.Out.Header.Set("X-Forwarded-Host", r.Header.Get("Host"))
 			pr.Out.Header.Set("X-Proxy-Processor", "liteproxy")
 			pr.Out.Header.Del("Accept-Encoding")
 		},
@@ -49,9 +59,9 @@ func (p *ProxyServer) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	proxy.ServeHTTP(w, r)
 }
 
-func (p *ProxyServer) serveFromCache(w http.ResponseWriter, r *http.Request) error {
+func (p *ProxyServer) serveFromCache(w http.ResponseWriter, r *http.Request, targetURL url.URL) error {
 	ctx := r.Context()
-	cachedData, err := p.Cache.Get(ctx, *r.URL)
+	cachedData, err := p.Cache.Get(ctx, targetURL)
 	if err != nil {
 		return err
 	}
@@ -62,15 +72,18 @@ func (p *ProxyServer) serveFromCache(w http.ResponseWriter, r *http.Request) err
 }
 
 func (p *ProxyServer) modifyResponse(url url.URL, resp *http.Response) error {
-	// Rewrite the body
-	rewrittenBody, err := p.Pipeline.Process(resp.Body, resp.Header.Get("Content-Type"))
+	ct := resp.Header.Get("Content-Type")
+	if ct == "" {
+		ct = "application/octet-stream"
+	}
+
+	rewrittenBody, err := p.Pipeline.Process(resp.Body, ct)
 	if err != nil {
 		return err
 	}
 
 	ctx := resp.Request.Context()
 
-	// rewriting and caching
 	pr, pw := io.Pipe()
 	tr := io.TeeReader(rewrittenBody, pw)
 	go func() {
