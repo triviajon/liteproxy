@@ -47,6 +47,22 @@ resource "aws_subnet" "public_2" {
   tags                    = { Name = "proxy-public-2" }
 }
 
+resource "aws_subnet" "private_1" {
+  vpc_id                  = aws_vpc.proxy_vpc.id
+  cidr_block              = "10.0.3.0/24"
+  availability_zone       = data.aws_availability_zones.available.names[0]
+  map_public_ip_on_launch = false
+  tags                    = { Name = "proxy-private-1" }
+}
+
+resource "aws_subnet" "private_2" {
+  vpc_id                  = aws_vpc.proxy_vpc.id
+  cidr_block              = "10.0.4.0/24"
+  availability_zone       = data.aws_availability_zones.available.names[1]
+  map_public_ip_on_launch = false
+  tags                    = { Name = "proxy-private-2" }
+}
+
 resource "aws_route_table" "public_rt" {
   vpc_id = aws_vpc.proxy_vpc.id
   route {

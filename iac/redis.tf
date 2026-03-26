@@ -13,19 +13,12 @@ resource "aws_security_group" "redis_sg" {
     protocol        = "tcp"
     security_groups = [aws_security_group.processor_sg.id]
   }
-
-  egress {
-    from_port   = 0
-    to_port     = 0
-    protocol    = "-1"
-    cidr_blocks = []
-  }
 }
 
 # Subnet Group
 resource "aws_elasticache_subnet_group" "proxy_cache_subnets" {
   name       = "proxy-cache-subnet-group"
-  subnet_ids = [aws_subnet.public_1.id, aws_subnet.public_2.id]
+  subnet_ids = [aws_subnet.private_1.id, aws_subnet.private_2.id]
 }
 
 # Elasticache Cluster
