@@ -136,7 +136,8 @@ resource "aws_lb_listener" "http_listener" {
 }
 
 resource "aws_secretsmanager_secret" "proxy_auth_token" {
-  name = "liteproxy/proxy-auth-token"
+  name                    = "liteproxy/proxy-auth-token"
+  recovery_window_in_days = 0
 }
 
 resource "aws_secretsmanager_secret_version" "proxy_auth_token_version" {
