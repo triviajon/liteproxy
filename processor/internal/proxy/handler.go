@@ -114,6 +114,7 @@ func (p *ProxyServer) modifyResponse(url url.URL, resp *http.Response) error {
 
 	resp.Body = io.NopCloser(tr)
 	resp.ContentLength = -1
+	resp.Header.Del("Content-Length")
 
 	return nil
 }
