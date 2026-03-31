@@ -117,6 +117,15 @@ resource "aws_lb_target_group" "proxy_tg" {
   port     = var.processor_port
   protocol = "HTTP"
   vpc_id   = aws_vpc.proxy_vpc.id
+
+  health_check {
+    path                = "/health"
+    matcher             = "200"
+    interval            = 30
+    timeout             = 10
+    healthy_threshold   = 2
+    unhealthy_threshold = 3
+  }
 }
 
 resource "aws_lb_listener" "http_listener" {

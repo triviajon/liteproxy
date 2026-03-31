@@ -69,17 +69,29 @@ func main() {
 
 	// Chain the Middlewares
 	logging.Infof("Setting up authentication middleware...")
-	handler, err := auth.WithHeaderAuth(proxySrv, proxySecret)
+	authHandler, err := auth.WithHeaderAuth(proxySrv, proxySecret)
 	if err != nil {
 		logging.Fatalf("Failed to create auth middleware: %v", err)
 	}
+
+	// Set up router with health check endpoint (no auth required) and main proxy (auth required)
+	mux := http.NewServeMux()
+
+	// Health check endpoint - no auth, no I/O
+	mux.HandleFunc("GET /health", func(w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(http.StatusOK)
+		w.Write([]byte("ok"))
+	})
+
+	// Everything else routes through the auth-wrapped proxy handler
+	mux.Handle("/", authHandler)
 
 	// Lifecycle Management
 	logging.Infof("Creating HTTP server - addr=:%s read_timeout=%v write_timeout=%v idle_timeout=%v",
 		listenPort, constant.DefaultReadTimeout, constant.DefaultWriteTimeout, constant.DefaultIdleTimeout)
 	server := &http.Server{
 		Addr:         ":" + listenPort,
-		Handler:      handler,
+		Handler:      mux,
 		ReadTimeout:  constant.DefaultReadTimeout,
 		WriteTimeout: constant.DefaultWriteTimeout,
 		IdleTimeout:  constant.DefaultIdleTimeout,
